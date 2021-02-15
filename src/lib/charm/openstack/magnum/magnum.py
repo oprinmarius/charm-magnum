@@ -90,7 +90,7 @@ class MagnumCharm(charms_openstack.charm.HAOpenStackCharm):
     service_type = 'magnum'
     default_service = 'magnum-api'
     services = MAGNUM_SERVICES
-    sync_cmd = ['sudo', 'magnum-db-manage', 'upgrade']
+    sync_cmd = ['magnum-db-manage', 'upgrade']
 
     required_relations = [
         'shared-db', 'amqp', 'identity-service']
