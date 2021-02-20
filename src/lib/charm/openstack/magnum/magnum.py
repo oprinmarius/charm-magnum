@@ -2,39 +2,50 @@ from __future__ import absolute_import
 
 import collections
 import os
-import subprocess
-import shutil
-import grp
-import pwd
 
-import charmhelpers.core.hookenv as hookenv
-
-from charms_openstack.charm import core
+import charms.leadership as leadership
 import charms_openstack.charm
-import charms_openstack.adapters
+import charms_openstack.adapters as adapters
 import charms_openstack.ip as os_ip
-from charms.layer import basic
-import charmhelpers.contrib.openstack.utils as os_utils
+import charmhelpers.core.host as ch_host
+import charmhelpers.core.hookenv as ch_hookenv
 
 
-PACKAGES = ['magnum-api', 'magnum-conductor', 'python3-mysqldb',
-            'python3-magnumclient']
+PACKAGES = [
+    'magnum-api',
+    'magnum-conductor',
+    'python3-mysqldb',
+    'python3-magnumclient']
+
 MAGNUM_DIR = '/etc/magnum/'
-MAGNUM_CONF = os.path.join(MAGNUM_DIR, "magnum.conf")
-MAGNUM_PASTE_API = os.path.join(MAGNUM_DIR, "api-paste.ini")
-KEYSTONE_POLICY = os.path.join(MAGNUM_DIR, "keystone_auth_default_policy.json")
-POLICY = os.path.join(MAGNUM_DIR, "policy.json")
-SERVICE_NAME = "magnum"
-MAGNUM_BINARIES = [
-    "magnum-api",
-    "magnum-conductor",
-    "magnum-db-manage",
-    "magnum-driver-manage"]
-MAGNUM_API_SVC = 'magnum-api'
-MAGNUM_CONDUCTOR_SVC = 'magnum-conductor'
-MAGNUM_SERVICES = [MAGNUM_API_SVC, MAGNUM_CONDUCTOR_SVC]
-MAGNUM_USER = "magnum"
-MAGNUM_GROUP = "magnum"
+MAGNUM_CONF = os.path.join(MAGNUM_DIR, 'magnum.conf')
+MAGNUM_PASTE_API = os.path.join(MAGNUM_DIR, 'api-paste.ini')
+KEYSTONE_POLICY = os.path.join(MAGNUM_DIR, 'keystone_auth_default_policy.json')
+POLICY = os.path.join(MAGNUM_DIR, 'policy.json')
+
+MAGNUM_SERVICES = [
+    'magnum-api',
+    'magnum-conductor']
+
+
+# select the default release function
+charms_openstack.charm.use_defaults('charm.default-select-release')
+
+
+@adapters.config_property
+def magnum_password(arg):
+    passwd = leadership.leader_get("magnum_password")
+    if passwd:
+        return passwd
+
+
+@adapters.config_property
+def ca_file_path(arg):
+    file_path = os.path.join(
+        ch_host.CA_CERT_DIR, "{}.crt".format(ch_hookenv.service_name()))
+    if os.path.exists(file_path):
+        return file_path
+    return ''
 
 
 def db_sync_done():
@@ -67,10 +78,6 @@ def setup_endpoint(keystone):
                                 public_ep,
                                 internal_ep,
                                 admin_ep)
-
-
-# select the default release function
-charms_openstack.charm.use_defaults('charm.default-select-release')
 
 
 class MagnumCharm(charms_openstack.charm.HAOpenStackCharm):
