@@ -1,7 +1,7 @@
 charm_name: magnum
 
 smoke_bundles:
-- bionic-ussuri
+- focal-victoria
 
 gate_bundles:
 - bionic-ussuri
@@ -17,7 +17,6 @@ configure:
 - zaza.openstack.charm_tests.nova.setup.manage_ssh_key
 
 tests:
-- zaza.openstack.charm_tests.keystone.tests.AuthenticationAuthorizationTest
 - zaza.openstack.charm_tests.nova.tests.CirrosGuestCreateTest
 
 target_deploy_status:

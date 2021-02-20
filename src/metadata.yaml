@@ -1,4 +1,4 @@
-name: charm-magnum
+name: magnum
 summary: Openstack container component
 maintainer: Oprin Marius Cristian <moprin@cloudbasesolutions.com>
 description: |
@@ -8,8 +8,6 @@ description: |
   OS image which contains Docker and Kubernetes and runs that image in either virtual
   machines or bare metal in a cluster configuration.
 tags:
-  # Replace "misc" with one or more whitelisted tags from this list:
-  # https://jujucharms.com/docs/stable/authors-charm-metadata
   - openstack
 series:
   - bionic

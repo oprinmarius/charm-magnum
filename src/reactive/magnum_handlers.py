@@ -1,16 +1,17 @@
 from __future__ import absolute_import
+
 import binascii
 import os
 
-import charms.reactive as reactive
-import charmhelpers.core.hookenv as hookenv
-import charms.leadership as leadership
-
-import charms_openstack.charm as charm
 import charm.openstack.magnum.magnum as magnum  # noqa
-import charms_openstack.adapters as adapters
+import charms.reactive as reactive
+import charms.leadership as leadership
+import charms_openstack.charm as charm
+import charmhelpers.core.hookenv as hookenv
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core import templating
+
 # Use the charms.openstack defaults for common states and hooks
 charm.use_defaults(
     'charm.installed',
@@ -27,14 +28,22 @@ charm.use_defaults(
 @reactive.when('shared-db.available')
 @reactive.when('identity-service.available')
 @reactive.when('amqp.available')
-def render(*args):
-    hookenv.log("about to call the render_configs with {}".format(args))
+def render_config(*interfaces):
     with charm.provide_charm_instance() as magnum_charm:
-        magnum_charm.render_with_interfaces(
-            charm.optional_interfaces(args))
-        magnum_charm.configure_ssl()
+        magnum_charm.render_with_interfaces(interfaces)
         magnum_charm.assess_status()
     reactive.set_state('config.complete')
+
+
+@reactive.when('certificates.available')
+@reactive.when('shared-db.available')
+@reactive.when('identity-service.available')
+@reactive.when('amqp.available')
+def render_config_with_certs(amqp, keystone, shared_db, certs):
+    with charm.provide_charm_instance() as magnum_charm:
+        magnum_charm.configure_tls(certs)
+        magnum_charm.render_with_interfaces(
+            [amqp, keystone, shared_db, certs])
 
 
 @reactive.when('identity-service.connected')
@@ -45,7 +54,7 @@ def setup_endpoint(keystone):
 
 @reactive.when_not('leadership.set.magnum_password')
 @reactive.when('leadership.is_leader')
-def generate_magnum_password(*args):
+def generate_magnum_password():
     passwd = binascii.b2a_hex(os.urandom(32)).decode()
     leadership.leader_set({'magnum_password': passwd})
 
@@ -53,7 +62,7 @@ def generate_magnum_password(*args):
 @reactive.when('leadership.set.magnum_password')
 @reactive.when('leadership.is_leader')
 @reactive.when('identity-service.available')
-def write_openrc(*args):
+def write_openrc():
     config = hookenv.config()
     ctx = context.IdentityServiceContext()()
     if not ctx:
@@ -74,14 +83,7 @@ def run_db_migration():
 
 @reactive.when('ha.connected')
 @reactive.when_not('ha.available')
-def cluster_connected(hacluster):
+def connect_cluster(hacluster):
     with charm.provide_charm_instance() as magnum_charm:
         magnum_charm.configure_ha_resources(hacluster)
         magnum_charm.assess_status()
-
-
-@adapters.config_property
-def magnum_password(arg):
-    passwd = leadership.leader_get("magnum_password")
-    if passwd:
-        return passwd
